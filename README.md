@@ -1,4 +1,4 @@
-# clean_arcitecture_flutter_sample
+# clean_arcitecture_flutter
 
 A new Flutter project.
 
