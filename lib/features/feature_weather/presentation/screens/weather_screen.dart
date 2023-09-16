@@ -1,14 +1,18 @@
 import 'package:clean_arcitecture_flutter_sample/core/params/forecast_params.dart';
 import 'package:clean_arcitecture_flutter_sample/core/widgets/app_background.dart';
+import 'package:clean_arcitecture_flutter_sample/features/feature_weather/data/models/suggest_city_model.dart';
+import 'package:clean_arcitecture_flutter_sample/features/feature_weather/domain/usecases/get_suggest_city_usecase.dart';
 import 'package:clean_arcitecture_flutter_sample/features/feature_weather/presentation/bloc/cw_status.dart';
 import 'package:clean_arcitecture_flutter_sample/features/feature_weather/presentation/bloc/fw_status.dart';
 import 'package:clean_arcitecture_flutter_sample/features/feature_weather/presentation/bloc/weather_bloc.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import '../../../../core/utils/date_converter.dart';
 import '../../../../core/widgets/dot_loading_widget.dart';
+import '../../../../locator.dart';
 import '../../data/models/forecast_days_model.dart';
 import '../../domain/entities/forecast_days_entiry.dart';
 import '../widgets/day_weather_view.dart';
@@ -23,6 +27,9 @@ class WeatherScreen extends StatefulWidget {
 class _WeatherScreenState extends State<WeatherScreen> {
   String cityName = 'Tehran';
   final pageController = PageController(initialPage: 0);
+  TextEditingController textEditingController = TextEditingController();
+  GetSuggestCityUseCase getSuggestCityUseCase =
+      GetSuggestCityUseCase(locator());
 
   @override
   void dispose() {
@@ -43,6 +50,53 @@ class _WeatherScreenState extends State<WeatherScreen> {
     return SafeArea(
         child: Column(
       children: [
+        SizedBox(
+          height: height * 0.02,
+        ),
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: width * 0.02),
+          child: TypeAheadField(
+            textFieldConfiguration: TextFieldConfiguration(
+              onSubmitted: (String prefix) {
+                textEditingController.text = prefix;
+                BlocProvider.of<WeatherBloc>(context).add(LoadCWEvent(prefix));
+              },
+              controller: textEditingController,
+              style: DefaultTextStyle.of(context).style.copyWith(
+                    fontSize: 20,
+                    color: Colors.white,
+                  ),
+              decoration: const InputDecoration(
+                contentPadding: EdgeInsets.fromLTRB(20, 0, 0, 0),
+                hintText: "Enter a City...",
+                hintStyle: TextStyle(color: Colors.white),
+                focusedBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: Colors.white),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: Colors.white),
+                ),
+              ),
+            ),
+            suggestionsCallback: (String pattern) {
+              return getSuggestCityUseCase(pattern);
+            },
+            itemBuilder: (BuildContext context, Data itemData) {
+              return ListTile(
+                leading: const Icon(Icons.location_on),
+                title: Text(itemData.name!),
+                subtitle: Text('${itemData.region!}, ${itemData.country!}'),
+              );
+            },
+            onSuggestionSelected: (Data suggestion) {
+              textEditingController.text = suggestion.name!;
+              BlocProvider.of<WeatherBloc>(context)
+                  .add(LoadCWEvent(suggestion.name!));
+            },
+          ),
+        ),
+
+        /// main ui
         BlocBuilder<WeatherBloc, WeatherState>(
           buildWhen: (previous, current) {
             if (previous.cwStatus == current.cwStatus) {
@@ -293,8 +347,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
               ));
             }
             if (state.cwStatus is CwError) {
-              final CwError cwError =
-              state.cwStatus as CwError;
+              final CwError cwError = state.cwStatus as CwError;
               return Center(
                 child: Text(
                   cwError.message,

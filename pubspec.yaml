@@ -43,6 +43,7 @@ dependencies:
   intl: ^0.18.1
   loading_animation_widget: ^1.2.0+4
   smooth_page_indicator: ^1.1.0
+  flutter_typeahead: ^4.7.0
 
 dev_dependencies:
   flutter_test:
