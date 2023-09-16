@@ -1,11 +1,17 @@
+import 'package:clean_arcitecture_flutter_sample/core/params/forecast_params.dart';
 import 'package:clean_arcitecture_flutter_sample/core/widgets/app_background.dart';
 import 'package:clean_arcitecture_flutter_sample/features/feature_weather/presentation/bloc/cw_status.dart';
+import 'package:clean_arcitecture_flutter_sample/features/feature_weather/presentation/bloc/fw_status.dart';
 import 'package:clean_arcitecture_flutter_sample/features/feature_weather/presentation/bloc/weather_bloc.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
+import '../../../../core/utils/date_converter.dart';
 import '../../../../core/widgets/dot_loading_widget.dart';
+import '../../data/models/forecast_days_model.dart';
+import '../../domain/entities/forecast_days_entiry.dart';
+import '../widgets/day_weather_view.dart';
 
 class WeatherScreen extends StatefulWidget {
   const WeatherScreen({super.key});
@@ -26,7 +32,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
 
   @override
   void initState() {
-    BlocProvider.of<WeatherBloc>(context).add(LoadCWEEvent(cityName));
+    BlocProvider.of<WeatherBloc>(context).add(LoadCWEvent(cityName));
     super.initState();
   }
 
@@ -38,6 +44,12 @@ class _WeatherScreenState extends State<WeatherScreen> {
         child: Column(
       children: [
         BlocBuilder<WeatherBloc, WeatherState>(
+          buildWhen: (previous, current) {
+            if (previous.cwStatus == current.cwStatus) {
+              return false;
+            }
+            return true;
+          },
           builder: (context, state) {
             if (state.cwStatus is CwLoading) {
               return const Expanded(child: DotLoadingWidget());
@@ -45,6 +57,18 @@ class _WeatherScreenState extends State<WeatherScreen> {
             if (state.cwStatus is CwCompleted) {
               final currentCityEntity =
                   (state.cwStatus as CwCompleted).currentCityEntity;
+
+              /// call fw event
+              BlocProvider.of<WeatherBloc>(context).add(LoadFWEvent(
+                  ForecastParams(currentCityEntity.coord!.lat!,
+                      currentCityEntity.coord!.lon!)));
+
+              /// change Times to Hour --5:55 AM/PM----
+              final sunrise = DateConverter.changeDtToDateTimeHour(
+                  currentCityEntity.sys!.sunrise, currentCityEntity.timezone);
+              final sunset = DateConverter.changeDtToDateTimeHour(
+                  currentCityEntity.sys!.sunset, currentCityEntity.timezone);
+
               return Expanded(
                   child: ListView(
                 children: [
@@ -182,11 +206,102 @@ class _WeatherScreenState extends State<WeatherScreen> {
                               ),
                               curve: Curves.bounceOut),
                     ),
-                  )
+                  ),
+
+                  /// divider
+                  Padding(
+                    padding: const EdgeInsets.only(top: 30),
+                    child: Container(
+                      color: Colors.white24,
+                      height: 2,
+                      width: double.infinity,
+                    ),
+                  ),
+
+                  /// forecast weather 7 days
+                  Padding(
+                    padding: const EdgeInsets.only(top: 15),
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 100,
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 10.0),
+                        child: Center(
+                          child: BlocBuilder<WeatherBloc, WeatherState>(
+                            builder: (BuildContext context, state) {
+                              /// show Loading State for Fw
+                              if (state.fwStatus is FwLoading) {
+                                return const DotLoadingWidget();
+                              }
+
+                              /// show Completed State for Fw
+                              if (state.fwStatus is FwCompleted) {
+                                /// casting
+                                final FwCompleted fwCompleted =
+                                    state.fwStatus as FwCompleted;
+                                final ForecastDaysEntity forecastDaysEntity =
+                                    fwCompleted.forecastDaysEntity;
+                                final List<Daily> mainDaily =
+                                    forecastDaysEntity.daily!;
+
+                                return ListView.builder(
+                                  shrinkWrap: true,
+                                  scrollDirection: Axis.horizontal,
+                                  itemCount: 8,
+                                  itemBuilder: (
+                                    BuildContext context,
+                                    int index,
+                                  ) {
+                                    return DaysWeatherView(
+                                      daily: mainDaily[index],
+                                    );
+                                  },
+                                );
+                              }
+
+                              /// show Error State for Fw
+                              if (state.fwStatus is FwError) {
+                                final FwError fwError =
+                                    state.fwStatus as FwError;
+                                return Center(
+                                  child: Text(
+                                    fwError.message,
+                                    style: const TextStyle(color: Colors.white),
+                                  ),
+                                );
+                              }
+
+                              /// show Default State for Fw
+                              return Container();
+                            },
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  /// divider
+                  Padding(
+                    padding: const EdgeInsets.only(top: 15),
+                    child: Container(
+                      color: Colors.white24,
+                      height: 2,
+                      width: double.infinity,
+                    ),
+                  ),
                 ],
               ));
             }
-            if (state.cwStatus is CwError) {}
+            if (state.cwStatus is CwError) {
+              final CwError cwError =
+              state.cwStatus as CwError;
+              return Center(
+                child: Text(
+                  cwError.message,
+                  style: const TextStyle(color: Colors.white),
+                ),
+              );
+            }
             return const SizedBox();
           },
         )

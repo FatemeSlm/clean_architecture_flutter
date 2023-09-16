@@ -1,3 +1,4 @@
+import 'package:clean_arcitecture_flutter_sample/core/params/forecast_params.dart';
 import 'package:clean_arcitecture_flutter_sample/core/utils/constants.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
@@ -14,6 +15,19 @@ class ApiProvider {
     if (kDebugMode) {
       print(response.data);
     }
+    return response;
+  }
+
+  /// 7 days forecast api
+  Future<dynamic> sendRequest7DaysForecast(ForecastParams params) async {
+    var response = await _dio
+        .get('${Constants.baseUrl}/data/2.5/onecall', queryParameters: {
+      'lat': params.lat,
+      'lon': params.lon,
+      'exclude': 'minutely, hourly',
+      'appid': apiKey,
+      'units': 'metric'
+    });
     return response;
   }
 }

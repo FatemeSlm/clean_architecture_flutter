@@ -287,8 +287,8 @@ class Coord {
     lat = json['lat'];
   }
 
-  num? lon;
-  num? lat;
+  double? lon;
+  double? lat;
 
   Map<String, dynamic> toJson() {
     final map = <String, dynamic>{};

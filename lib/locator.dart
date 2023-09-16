@@ -5,6 +5,8 @@ import 'package:clean_arcitecture_flutter_sample/features/feature_weather/domain
 import 'package:clean_arcitecture_flutter_sample/features/feature_weather/presentation/bloc/weather_bloc.dart';
 import 'package:get_it/get_it.dart';
 
+import 'features/feature_weather/domain/usecases/get_forecast_weather_usecase.dart';
+
 GetIt locator = GetIt.instance;
 
 setup() {
@@ -15,7 +17,8 @@ setup() {
 
   /// use cases
   locator.registerSingleton<GetCurrentWeatherUseCase>(GetCurrentWeatherUseCase(locator()));
+  locator.registerSingleton<GetForecastWeatherUseCase>(GetForecastWeatherUseCase(locator()));
 
   /// blocs
-  locator.registerSingleton<WeatherBloc>(WeatherBloc(locator()));
+  locator.registerSingleton<WeatherBloc>(WeatherBloc(locator(), locator()));
 }
